@@ -2,6 +2,7 @@ package com.poll.pollsapp.controller;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.UUID;
 
 import javax.validation.Valid;
 
@@ -27,13 +28,17 @@ import com.poll.pollsapp.exception.AppException;
 import com.poll.pollsapp.models.Role;
 import com.poll.pollsapp.models.RoleName;
 import com.poll.pollsapp.models.User;
+import com.poll.pollsapp.models.VerificationToken;
 import com.poll.pollsapp.payload.ApiResponse;
 import com.poll.pollsapp.payload.JwtAuthenticationResponse;
 import com.poll.pollsapp.payload.LoginRequest;
 import com.poll.pollsapp.payload.SignUpRequest;
 import com.poll.pollsapp.repository.RoleRepository;
+import com.poll.pollsapp.repository.TokenRepository;
 import com.poll.pollsapp.repository.UserRepository;
 import com.poll.pollsapp.security.JwtTokenProvider;
+import com.poll.pollsapp.service.EmailSenderService;
+import com.poll.pollsapp.service.UserService;
 
 @CrossOrigin("http://localhost:3000")
 @RestController
@@ -42,6 +47,10 @@ public class AuthController {
 
 	@Autowired
     AuthenticationManager authenticationManager;
+	
+	@Autowired
+	private EmailSenderService notificationService;
+
 
     @Autowired
     UserRepository userRepository;
@@ -54,6 +63,10 @@ public class AuthController {
 
     @Autowired
     JwtTokenProvider tokenProvider;	
+    
+    
+    @Autowired
+    UserService userService;
     
     @PostMapping("/signin")
     public ResponseEntity<?> UserSignIn(@Valid @RequestBody LoginRequest loginRequest)
@@ -70,6 +83,12 @@ public class AuthController {
        	
     }
 	
+    @GetMapping("/mail")
+    public void email()
+    {
+    	System.out.println("I am in Email");
+    	notificationService.sendEmail();
+    }
 	@PostMapping("/signup")
 	public ResponseEntity<?> UserSignUp(@Valid @RequestBody SignUpRequest signupRequest)
 	{
@@ -96,9 +115,8 @@ public class AuthController {
         
         System.out.println("I am going to save the user to DB");
         
-        User result = userRepository.save(user);
-	
-        
+        User result=userService.processAccountCreation(user);
+       
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath().path("/api/users/{username}")
                 .buildAndExpand(result.getUsername()).toUri();
